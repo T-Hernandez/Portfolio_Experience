@@ -338,3 +338,85 @@ Evitar superponer interfaces que oculten completamente la habitación.
 El escenario nunca debe desaparecer.
 
 El usuario siempre debe sentir que continúa dentro del cuarto.
+
+# Principios de diseño
+
+Antes de implementar cualquier característica, comprobar si cumple estos principios.
+
+## 1. La habitación siempre es el protagonista.
+
+Las interfaces existen para complementar la habitación, nunca para reemplazarla.
+
+---
+
+## 2. La interacción debe sentirse física.
+
+Siempre que sea posible, las acciones deben parecer consecuencia del objeto seleccionado.
+
+No crear interfaces arbitrarias.
+
+---
+
+## 3. Menos es más.
+
+Es preferible una interacción excelente que diez interacciones mediocres.
+
+---
+
+## 4. Todo debe tener intención.
+
+Cada animación.
+
+Cada transición.
+
+Cada sonido.
+
+Cada movimiento de cámara.
+
+Debe existir porque mejora la experiencia.
+
+Nunca porque "se ve cool".
+
+---
+
+## 5. El usuario explora.
+
+No queremos decirle constantemente dónde hacer click.
+
+Queremos que tenga curiosidad.
+
+El escenario debe invitar a descubrir.
+
+# Rendimiento
+
+La experiencia debe sentirse extremadamente fluida.
+
+Prioridades:
+
+60 FPS constantes.
+
+Modelo optimizado.
+
+Texturas comprimidas.
+
+Lazy loading cuando sea posible.
+
+Animaciones ligeras.
+
+Evitar postprocesado innecesario.
+
+La simplicidad tiene prioridad sobre los efectos visuales.
+
+# Qué hace memorable este proyecto
+
+El objetivo no es impresionar con gráficos.
+
+El objetivo es que el usuario recuerde la experiencia.
+
+Al cerrar el navegador, debería recordar:
+
+"La persona me mostró su trabajo haciéndome entrar a su habitación."
+
+No:
+
+"Vi otro portafolio bonito."
