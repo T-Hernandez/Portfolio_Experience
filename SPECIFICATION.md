@@ -36,7 +36,7 @@ Este será el archivo utilizado por React Three Fiber.
 
 La imagen
 
-design/reference/reference-angle.png
+design/reference/initial-camera-angle.png
 
 define el encuadre inicial de la experiencia.
 

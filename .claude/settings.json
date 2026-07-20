@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(where blender *)",
+      "Bash(npm -v)",
+      "Bash(npm create *)",
+      "Bash(set -e)",
+      "Bash(mv .tmp-scaffold/public/favicon.svg public/favicon.svg)",
+      "Bash(mv .tmp-scaffold/public/icons.svg public/icons.svg)",
+      "Bash(mv .tmp-scaffold/src/* src/)",
+      "Bash(mv .tmp-scaffold/.gitignore .gitignore)",
+      "Bash(rm -rf .tmp-scaffold)",
+      "Bash(rm -f src/assets/hero.png src/assets/react.svg src/assets/vite.svg)",
+      "Bash(rmdir src/assets)",
+      "Bash(grep -E \"^\\(three|zustand|gsap\\)$\")",
+      "Skill(run)",
+      "Skill(run:*)",
+      "Bash(chromium-cli --help)",
+      "Bash(npx --yes playwright --version)",
+      "Bash(npm init *)",
+      "Bash(npx playwright *)",
+      "Bash(node verify.mjs)",
+      "Bash(node verify2.mjs)",
+      "Bash(node -e ' *)",
+      "Bash(netstat -ano)",
+      "Bash(taskkill //PID 1924 //F)"
+    ]
+  }
+}
