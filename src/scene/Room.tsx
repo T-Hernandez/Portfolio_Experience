@@ -1,16 +1,28 @@
+import { useEffect } from 'react'
 import InteractiveObject from './interactiveObject'
 import Laptop from './objects/Laptop'
 import Bookshelf from './objects/Bookshelf'
 import Turntable from './objects/Turntable'
 import Plant from './objects/Plant'
-import { OBJECT_POSITIONS } from './sceneConfig'
+import PlaceholderCameraAnchors from './placeholder/PlaceholderCameraAnchors'
+import { useSceneAnchors } from './SceneAnchorsProvider'
 
 /**
  * Geometría placeholder mientras no existe public/models/room.glb.
  * Nombres y jerarquía pensados para mapear 1:1 con el modelo real del
- * SPECIFICATION.md (Wall, Floor, Desk, Chair, Laptop, Bookshelf, Turntable, Plant).
+ * SPECIFICATION.md (Wall, Floor, Desk, Chair, Laptop, Bookshelf, Turntable,
+ * Plant), incluyendo los anchors (Camera_X, XAnchor) que consumen CameraRig
+ * e InterfaceLayer. Estas posiciones son locales a este archivo: cuando
+ * llegue el .glb, este componente completo se reemplaza y nadie más se
+ * entera.
  */
 export default function Room() {
+  const { notifyReady } = useSceneAnchors()
+
+  useEffect(() => {
+    notifyReady()
+  }, [notifyReady])
+
   return (
     <group name="Room">
       <mesh
@@ -38,19 +50,21 @@ export default function Room() {
         <meshStandardMaterial color="#3d2f22" roughness={0.8} />
       </mesh>
 
-      <InteractiveObject id="bookshelf" position={OBJECT_POSITIONS.bookshelf}>
+      <PlaceholderCameraAnchors />
+
+      <InteractiveObject id="bookshelf" position={[-2.6, 0, -2.7]}>
         <Bookshelf />
       </InteractiveObject>
 
-      <InteractiveObject id="laptop" position={OBJECT_POSITIONS.laptop}>
+      <InteractiveObject id="laptop" position={[-0.6, 0.92, -2.28]}>
         <Laptop />
       </InteractiveObject>
 
-      <InteractiveObject id="turntable" position={OBJECT_POSITIONS.turntable}>
+      <InteractiveObject id="turntable" position={[0.6, 0.92, -2.28]}>
         <Turntable />
       </InteractiveObject>
 
-      <InteractiveObject id="plant" position={OBJECT_POSITIONS.plant}>
+      <InteractiveObject id="plant" position={[2.6, 0, -2.3]}>
         <Plant />
       </InteractiveObject>
     </group>

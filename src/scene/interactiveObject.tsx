@@ -10,11 +10,11 @@ interface InteractiveObjectProps {
 
 export default function InteractiveObject({ id, position, children }: InteractiveObjectProps) {
   const [hovered, setHovered] = useState(false)
-  const activeObject = useExperienceStore((s) => s.activeObject)
-  const setActiveObject = useExperienceStore((s) => s.setActiveObject)
+  const mode = useExperienceStore((s) => s.mode)
+  const focusObject = useExperienceStore((s) => s.focusObject)
   const setHoveredObject = useExperienceStore((s) => s.setHoveredObject)
 
-  const locked = activeObject !== null
+  const locked = mode !== 'idle'
 
   const handlePointerOver = (e: ThreeEvent<PointerEvent>) => {
     e.stopPropagation()
@@ -34,7 +34,7 @@ export default function InteractiveObject({ id, position, children }: Interactiv
   const handleClick = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation()
     if (locked) return
-    setActiveObject(id)
+    focusObject(id)
   }
 
   return (

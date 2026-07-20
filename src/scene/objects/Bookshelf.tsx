@@ -11,6 +11,7 @@ export default function Bookshelf() {
           <meshStandardMaterial color="#2b1c10" roughness={0.9} />
         </mesh>
       ))}
+      <group name="BookshelfAnchor" position={[0.55, 0.95, 0.2]} />
     </group>
   )
 }

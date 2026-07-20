@@ -27,6 +27,7 @@ export default function Turntable() {
         <cylinderGeometry args={[0.16, 0.16, 0.01, 32]} />
         <meshStandardMaterial color="#0a0a0a" roughness={0.3} metalness={0.1} />
       </mesh>
+      <group name="TurntableAnchor" position={[0.55, 0.3, 0]} />
     </group>
   )
 }

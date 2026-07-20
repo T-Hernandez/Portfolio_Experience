@@ -1,66 +1,60 @@
-import { useEffect, useRef } from 'react'
-import { useThree, useFrame } from '@react-three/fiber'
+import { useLayoutEffect, useRef } from 'react'
+import { useThree } from '@react-three/fiber'
 import gsap from 'gsap'
-import { Vector3 } from 'three'
+import { Quaternion, Vector3 } from 'three'
 import { useExperienceStore } from '../state/useExperienceStore'
-import { CAMERA_DEFAULT, CAMERA_FOCUS } from './sceneConfig'
+import { useSceneAnchors } from './SceneAnchorsProvider'
+import { CAMERA_ANCHOR_NAMES } from './anchors'
 
+/**
+ * La cámara nunca guarda su propio destino: copia/interpola hacia la
+ * transform (posición + orientación) completa del anchor Camera_* que
+ * corresponda. Mover un mueble o reencuadrar un shot en Blender no debería
+ * requerir tocar este archivo.
+ */
 export default function CameraRig() {
   const { camera } = useThree()
   const activeObject = useExperienceStore((s) => s.activeObject)
-  const setTransitioning = useExperienceStore((s) => s.setTransitioning)
-  const lookAtTarget = useRef(new Vector3(...CAMERA_DEFAULT.lookAt))
+  const setMode = useExperienceStore((s) => s.setMode)
+  const { getAnchor, version } = useSceneAnchors()
   const didInit = useRef(false)
+  const tween = useRef({ t: 0 })
 
-  useEffect(() => {
-    if (didInit.current) return
-    didInit.current = true
-    camera.position.set(...CAMERA_DEFAULT.position)
-    lookAtTarget.current.set(...CAMERA_DEFAULT.lookAt)
-    camera.lookAt(lookAtTarget.current)
-  }, [camera])
+  useLayoutEffect(() => {
+    const anchorName = activeObject ? CAMERA_ANCHOR_NAMES[activeObject] : CAMERA_ANCHOR_NAMES.default
+    const anchor = getAnchor(anchorName)
+    if (!anchor) return
 
-  useEffect(() => {
-    if (!didInit.current) return
+    const targetPos = anchor.getWorldPosition(new Vector3())
+    const targetQuat = anchor.getWorldQuaternion(new Quaternion())
 
-    const target = activeObject ? CAMERA_FOCUS[activeObject] : CAMERA_DEFAULT
-    setTransitioning(true)
-
-    const tl = gsap.timeline({ onComplete: () => setTransitioning(false) })
-
-    tl.to(
-      camera.position,
-      {
-        x: target.position[0],
-        y: target.position[1],
-        z: target.position[2],
-        duration: 1.4,
-        ease: 'power2.inOut',
-      },
-      0,
-    )
-
-    tl.to(
-      lookAtTarget.current,
-      {
-        x: target.lookAt[0],
-        y: target.lookAt[1],
-        z: target.lookAt[2],
-        duration: 1.4,
-        ease: 'power2.inOut',
-      },
-      0,
-    )
-
-    return () => {
-      tl.kill()
+    if (!didInit.current) {
+      didInit.current = true
+      camera.position.copy(targetPos)
+      camera.quaternion.copy(targetQuat)
+      setMode(activeObject ? 'focused' : 'idle')
+      return
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeObject])
 
-  useFrame(() => {
-    camera.lookAt(lookAtTarget.current)
-  })
+    const startPos = camera.position.clone()
+    const startQuat = camera.quaternion.clone()
+    const state = tween.current
+    state.t = 0
+    setMode('transitioning')
+
+    gsap.killTweensOf(state)
+    gsap.to(state, {
+      t: 1,
+      duration: 1.4,
+      ease: 'power2.inOut',
+      onUpdate: () => {
+        camera.position.lerpVectors(startPos, targetPos, state.t)
+        camera.quaternion.slerpQuaternions(startQuat, targetQuat, state.t)
+      },
+      onComplete: () => setMode(activeObject ? 'focused' : 'idle'),
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeObject, version])
 
   return null
 }

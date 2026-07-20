@@ -1,4 +1,4 @@
-import { contactLinks } from '../data/contact'
+import { contactLinks } from '../content/contact'
 
 export default function PlantCard() {
   return (

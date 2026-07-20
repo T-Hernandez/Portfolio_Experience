@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { projects } from '../data/projects'
+import { projects } from '../content/projects'
 
 export default function LaptopScreen() {
   const [selectedId, setSelectedId] = useState<string | null>(null)

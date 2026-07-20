@@ -9,6 +9,7 @@ export default function Plant() {
         <sphereGeometry args={[0.22, 12, 12]} />
         <meshStandardMaterial color="#2f5d34" roughness={0.8} />
       </mesh>
+      <group name="PlantAnchor" position={[0.45, 0.5, 0]} />
     </group>
   )
 }

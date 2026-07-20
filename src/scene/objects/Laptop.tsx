@@ -15,6 +15,7 @@ export default function Laptop() {
           roughness={0.5}
         />
       </mesh>
+      <group name="LaptopScreenAnchor" position={[0, 0.15, -0.13]} rotation={[-0.25, 0, 0]} />
     </group>
   )
 }
