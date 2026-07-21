@@ -3,14 +3,15 @@ import { useThree } from '@react-three/fiber'
 import gsap from 'gsap'
 import { Box3, PerspectiveCamera, Quaternion, Vector3 } from 'three'
 import { useExperienceStore } from '../state/useExperienceStore'
-import { useSceneAnchors } from './SceneAnchorsProvider'
+import { useRoomScene } from './useRoomScene'
 import { OBJECT_NODE_NAMES, CAMERA_FRAMING, DEFAULT_CAMERA } from './framing'
 
 /**
  * No hay Empties Camera_* en el modelo real (el usuario prefirió capturas
  * de referencia). La cámara se calcula en runtime: se resuelve el nodo por
- * nombre, se mide su Box3 real, y se le aplica un offset/lookAt ajustado a
- * mano contra design/reference/*.png. La orientación se deriva con una
+ * nombre directamente en la escena del glb (useRoomScene, cacheada por
+ * useGLTF), se mide su Box3 real, y se le aplica un offset/lookAt ajustado
+ * a mano contra design/reference/*.png. La orientación se deriva con una
  * PerspectiveCamera de scratch (así se usa la convención -Z correcta, sin
  * el bug de +Z/-Z que da Object3D.lookAt en un objeto no-cámara).
  */
@@ -18,7 +19,7 @@ export default function CameraRig() {
   const { camera } = useThree()
   const activeObject = useExperienceStore((s) => s.activeObject)
   const setMode = useExperienceStore((s) => s.setMode)
-  const { getAnchor, version } = useSceneAnchors()
+  const scene = useRoomScene()
   const didInit = useRef(false)
   const tween = useRef({ t: 0 })
   const scratchCam = useRef(new PerspectiveCamera())
@@ -30,7 +31,7 @@ export default function CameraRig() {
 
     if (activeObject) {
       const nodeName = OBJECT_NODE_NAMES[activeObject]
-      const node = getAnchor(nodeName)
+      const node = scene.getObjectByName(nodeName)
       if (!node) return
 
       box.current.setFromObject(node)
@@ -81,7 +82,7 @@ export default function CameraRig() {
       onComplete: () => setMode(activeObject ? 'focused' : 'idle'),
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeObject, version])
+  }, [activeObject, scene])
 
   return null
 }

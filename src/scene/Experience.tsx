@@ -3,7 +3,6 @@ import { Canvas } from '@react-three/fiber'
 import Room from './Room'
 import CameraRig from './CameraRig'
 import InterfaceLayer from './InterfaceLayer'
-import { SceneAnchorsProvider } from './SceneAnchorsProvider'
 import BackButton from '../ui/BackButton'
 
 export default function Experience() {
@@ -17,13 +16,13 @@ export default function Experience() {
         <directionalLight position={[3, 4, 2]} intensity={1.1} castShadow />
         <directionalLight position={[-2, 2, 1]} intensity={0.3} />
 
-        <SceneAnchorsProvider>
-          <Suspense fallback={null}>
-            <Room />
-          </Suspense>
+        {/* CameraRig e InterfaceLayer también leen la escena vía useRoomScene
+            (useGLTF cacheado), así que también dependen del Suspense. */}
+        <Suspense fallback={null}>
+          <Room />
           <CameraRig />
           <InterfaceLayer />
-        </SceneAnchorsProvider>
+        </Suspense>
       </Canvas>
 
       <BackButton />

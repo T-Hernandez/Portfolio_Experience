@@ -17,7 +17,7 @@ Pendiente del lado de Blender: **solo 3 de los 9 materiales del `.glb` traen tex
 
 ## El contrato Blender ↔ código
 
-Blender es la fuente de verdad de **qué objetos existen y dónde están** — React nunca guarda la posición de un objeto como constante, la resuelve en runtime por **nombre** vía `scene.getObjectByName(...)` (ver `src/scene/SceneAnchorsProvider.tsx`, `src/scene/framing.ts`).
+Blender es la fuente de verdad de **qué objetos existen y dónde están** — React nunca guarda la posición de un objeto como constante, la resuelve en runtime por **nombre** vía `scene.getObjectByName(...)`. `src/scene/useRoomScene.ts` es el único punto que carga el `.glb` (`useGLTF`, cacheado por URL); `Room`, `CameraRig` e `InterfaceLayer` llaman a ese mismo hook y comparten la misma instancia de `scene` sin necesidad de un Context — no hay ningún provider de por medio.
 
 Decisión explícita del usuario: **no usar Empties `Camera_*` en Blender** para el encuadre — en su lugar se usan capturas de referencia (`design/reference/Reference *.png`) como guía visual. Esto significa que el *ángulo/distancia* de cada shot de cámara y la posición de cada panel de UI son constantes ajustadas a mano en `src/scene/framing.ts` (no datos leídos del `.blend`), calculadas como un offset sobre el `Box3` real del objeto resuelto por nombre:
 
@@ -37,7 +37,13 @@ Si en Blender se mueve alguno de estos objetos, la cámara y la UI lo siguen aut
 
 ### Interactividad
 
-`Room.tsx` monta el `.glb` completo de una — `<primitive object={scene} />` — y por separado monta un `<InteractiveObject>` por cada id interactivo, que resuelve su propio nodo por nombre y le agrega los handlers de hover/click. El hover **no escala el objeto** (deformar un laptop o un tocadiscos real rompe la ilusión) — clona los materiales del nodo (para no afectar a otros objetos que compartan el material original) y les sube el `emissive` un poco, además de cambiar el cursor.
+`Room.tsx` monta el `.glb` completo de una — `<primitive object={scene} />` — y dentro de ese mismo `<primitive>` (como hijos JSX, no como hermanos) monta un `<InteractiveObject>` por cada id interactivo. Esto es intencional: cuando `InteractiveObject` reparenta su nodo con `attach()`, el grupo contenedor sigue colgando de `scene`, así que `scene.getObjectByName(...)` (el que usan `CameraRig` e `InterfaceLayer`) sigue encontrando el objeto después del reparenting — si estuvieran fuera del `<primitive>`, quedarían huérfanos de `scene` y esa búsqueda fallaría en silencio.
+
+El hover **no escala el objeto** (deformar un laptop o un tocadiscos real rompe la ilusión) — clona los materiales del nodo (para no afectar a otros objetos que compartan el material original) y les sube el `emissive` un poco, además de cambiar el cursor.
+
+### Encuadre de la UI: offset relativo al tamaño del objeto, no al centro
+
+`UI_OFFSET_FRACTION` en `framing.ts` no es un vector absoluto sumado al centro del `Box3` — es una **fracción del propio tamaño** del objeto (`center + size * fracción`). Sumar directamente el centro del `Box3` sin esto haría que el panel flote en el centro geométrico del objeto (ej. el centro del laptop cae dentro del teclado, no en la pantalla); expresarlo como fracción del tamaño mantiene el desplazamiento proporcional si el objeto cambia de dimensiones. La cámara, en cambio, sí puede partir directamente del centro del `Box3` — para encuadrar un objeto el punto de referencia geométrico es exactamente lo que se necesita.
 
 ## Título en la pared
 

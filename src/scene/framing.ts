@@ -49,12 +49,21 @@ export const DEFAULT_CAMERA: CameraShot & { origin: [number, number, number] } =
   lookAtOffset: [-2, -0.5, 0],
 }
 
-/** Offset del panel de UI relativo al centro del Box3 del objeto. */
-export const UI_OFFSET: Record<InteractiveObjectId, [number, number, number]> = {
-  laptop: [0, 0.3, -0.1],
-  bookshelf: [2.5, 0.5, 0],
-  turntable: [2, 0.6, 0],
-  pokewalker: [1.8, 0.6, 0],
+/**
+ * Offset del panel de UI relativo al centro del Box3 del objeto, expresado
+ * como fracción del tamaño (ancho/alto/profundo) del propio Box3 en vez de
+ * un vector absoluto — así el panel no "flota" en el centro geométrico del
+ * objeto (ej. el centro del laptop cae dentro del teclado, no en la
+ * pantalla) y el desplazamiento se mantiene proporcional si el objeto
+ * cambia de tamaño. Calculado como (offset absoluto anterior / tamaño real
+ * del Box3 medido en runtime) para reproducir exactamente el encuadre ya
+ * validado contra las capturas de referencia.
+ */
+export const UI_OFFSET_FRACTION: Record<InteractiveObjectId, [number, number, number]> = {
+  laptop: [0, 0.0794, -0.0194],
+  bookshelf: [0.4476, 0.038, 0],
+  turntable: [0.505, 0.4399, 0],
+  pokewalker: [1.3725, 2.3867, 0],
 }
 
 /** Rotación fija de la pantalla del laptop (no hay anchor dedicado). */
