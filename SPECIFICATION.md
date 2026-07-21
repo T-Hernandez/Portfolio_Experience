@@ -100,6 +100,8 @@ Bookshelf
 
 Turntable
 
+Pokewalker
+
 Plant
 
 Desk
@@ -286,7 +288,7 @@ Debe sentirse como un elemento del tocadiscos.
 
 No utilizar una lista HTML tradicional.
 
-# Planta
+# Pokewalker
 
 Representa:
 
@@ -305,7 +307,7 @@ Contenido:
 - Email
 - CV
 
-Debe sentirse como un objeto apoyado sobre la mesa.
+Debe sentirse como un objeto apoyado sobre la mesa, junto a la planta decorativa.
 
 # Filosofía de las interfaces
 
@@ -325,7 +327,7 @@ Librero → ficha inspirada en una página de libro.
 
 Tocadiscos → reproductor musical.
 
-Planta → tarjeta de contacto.
+Pokewalker → tarjeta de contacto.
 
 El usuario debe sentir que está interactuando con el objeto, no con una página web.
 

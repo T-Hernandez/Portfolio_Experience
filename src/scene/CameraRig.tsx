@@ -1,16 +1,18 @@
 import { useLayoutEffect, useRef } from 'react'
 import { useThree } from '@react-three/fiber'
 import gsap from 'gsap'
-import { Quaternion, Vector3 } from 'three'
+import { Box3, PerspectiveCamera, Quaternion, Vector3 } from 'three'
 import { useExperienceStore } from '../state/useExperienceStore'
 import { useSceneAnchors } from './SceneAnchorsProvider'
-import { CAMERA_ANCHOR_NAMES } from './anchors'
+import { OBJECT_NODE_NAMES, CAMERA_FRAMING, DEFAULT_CAMERA } from './framing'
 
 /**
- * La cámara nunca guarda su propio destino: copia/interpola hacia la
- * transform (posición + orientación) completa del anchor Camera_* que
- * corresponda. Mover un mueble o reencuadrar un shot en Blender no debería
- * requerir tocar este archivo.
+ * No hay Empties Camera_* en el modelo real (el usuario prefirió capturas
+ * de referencia). La cámara se calcula en runtime: se resuelve el nodo por
+ * nombre, se mide su Box3 real, y se le aplica un offset/lookAt ajustado a
+ * mano contra design/reference/*.png. La orientación se deriva con una
+ * PerspectiveCamera de scratch (así se usa la convención -Z correcta, sin
+ * el bug de +Z/-Z que da Object3D.lookAt en un objeto no-cámara).
  */
 export default function CameraRig() {
   const { camera } = useThree()
@@ -19,14 +21,39 @@ export default function CameraRig() {
   const { getAnchor, version } = useSceneAnchors()
   const didInit = useRef(false)
   const tween = useRef({ t: 0 })
+  const scratchCam = useRef(new PerspectiveCamera())
+  const box = useRef(new Box3())
 
   useLayoutEffect(() => {
-    const anchorName = activeObject ? CAMERA_ANCHOR_NAMES[activeObject] : CAMERA_ANCHOR_NAMES.default
-    const anchor = getAnchor(anchorName)
-    if (!anchor) return
+    let targetPos: Vector3
+    let targetQuat: Quaternion
 
-    const targetPos = anchor.getWorldPosition(new Vector3())
-    const targetQuat = anchor.getWorldQuaternion(new Quaternion())
+    if (activeObject) {
+      const nodeName = OBJECT_NODE_NAMES[activeObject]
+      const node = getAnchor(nodeName)
+      if (!node) return
+
+      box.current.setFromObject(node)
+      const center = box.current.getCenter(new Vector3())
+      const shot = CAMERA_FRAMING[activeObject]
+
+      const pos = center.clone().add(new Vector3(...shot.offset))
+      const lookAt = center.clone().add(new Vector3(...shot.lookAtOffset))
+
+      scratchCam.current.position.copy(pos)
+      scratchCam.current.lookAt(lookAt)
+      targetPos = pos
+      targetQuat = scratchCam.current.quaternion.clone()
+    } else {
+      const origin = new Vector3(...DEFAULT_CAMERA.origin)
+      const pos = origin.clone().add(new Vector3(...DEFAULT_CAMERA.offset))
+      const lookAt = origin.clone().add(new Vector3(...DEFAULT_CAMERA.lookAtOffset))
+
+      scratchCam.current.position.copy(pos)
+      scratchCam.current.lookAt(lookAt)
+      targetPos = pos
+      targetQuat = scratchCam.current.quaternion.clone()
+    }
 
     if (!didInit.current) {
       didInit.current = true

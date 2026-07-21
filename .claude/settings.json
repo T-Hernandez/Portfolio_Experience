@@ -23,7 +23,9 @@
       "Bash(node verify2.mjs)",
       "Bash(node -e ' *)",
       "Bash(netstat -ano)",
-      "Bash(taskkill //PID 1924 //F)"
+      "Bash(taskkill //PID 1924 //F)",
+      "Bash(rm -rf src/scene/placeholder src/scene/objects)",
+      "Bash(rm -f src/ui/PlantCard.tsx)"
     ]
   }
 }

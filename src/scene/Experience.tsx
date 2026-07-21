@@ -10,8 +10,8 @@ export default function Experience() {
   return (
     <>
       {/* Posición inicial aproximada solo para el primer frame; CameraRig
-          la corrige inmediatamente contra el anchor Camera_Default. */}
-      <Canvas shadows dpr={[1, 2]} camera={{ position: [0.4, 1.55, 2.6], fov: 45 }}>
+          la corrige inmediatamente contra DEFAULT_CAMERA (framing.ts). */}
+      <Canvas shadows dpr={[1, 2]} camera={{ position: [1.5, 2, 4], fov: 45 }}>
         <color attach="background" args={['#0d0b0a']} />
         <ambientLight intensity={0.5} />
         <directionalLight position={[3, 4, 2]} intensity={1.1} castShadow />

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-export type InteractiveObjectId = 'laptop' | 'bookshelf' | 'turntable' | 'plant'
+export type InteractiveObjectId = 'laptop' | 'bookshelf' | 'turntable' | 'pokewalker'
 export type ExperienceMode = 'idle' | 'transitioning' | 'focused'
 
 interface ExperienceState {
