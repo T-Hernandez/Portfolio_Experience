@@ -1,8 +1,8 @@
 import { useMemo, type ComponentType } from 'react'
 import { Html } from '@react-three/drei'
-import { Box3, Vector3 } from 'three'
+import { Vector3 } from 'three'
 import { useExperienceStore, type InteractiveObjectId } from '../state/useExperienceStore'
-import { useRoomScene } from './useRoomScene'
+import { useRoomScene, getObjectBounds } from './useRoomScene'
 import { OBJECT_NODE_NAMES, UI_OFFSET_FRACTION, LAPTOP_SCREEN_TILT } from './framing'
 import LaptopScreen from '../ui/LaptopScreen'
 import BookshelfCard from '../ui/BookshelfCard'
@@ -27,16 +27,14 @@ export default function InterfaceLayer() {
   const activeObject = useExperienceStore((s) => s.activeObject)
   const scene = useRoomScene()
 
-  const node = activeObject ? scene.getObjectByName(OBJECT_NODE_NAMES[activeObject]) : undefined
-
   const position = useMemo(() => {
-    if (!node || !activeObject) return null
-    const box = new Box3().setFromObject(node)
-    const center = box.getCenter(new Vector3())
-    const size = box.getSize(new Vector3())
+    if (!activeObject) return null
+    const bounds = getObjectBounds(scene, OBJECT_NODE_NAMES[activeObject])
+    if (!bounds) return null
+    const size = bounds.box.getSize(new Vector3())
     const [fx, fy, fz] = UI_OFFSET_FRACTION[activeObject]
-    return center.add(new Vector3(size.x * fx, size.y * fy, size.z * fz))
-  }, [node, activeObject])
+    return bounds.center.clone().add(new Vector3(size.x * fx, size.y * fy, size.z * fz))
+  }, [scene, activeObject])
 
   if (!activeObject || !position) return null
 

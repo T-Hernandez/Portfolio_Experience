@@ -19,6 +19,8 @@ Pendiente del lado de Blender: **solo 3 de los 9 materiales del `.glb` traen tex
 
 Blender es la fuente de verdad de **qué objetos existen y dónde están** — React nunca guarda la posición de un objeto como constante, la resuelve en runtime por **nombre** vía `scene.getObjectByName(...)`. `src/scene/useRoomScene.ts` es el único punto que carga el `.glb` (`useGLTF`, cacheado por URL); `Room`, `CameraRig` e `InterfaceLayer` llaman a ese mismo hook y comparten la misma instancia de `scene` sin necesidad de un Context — no hay ningún provider de por medio.
 
+El `Box3` de cada objeto interactivo (su posición/tamaño real en el mundo) se calcula **una sola vez por escena**, no en cada transición de cámara — `getObjectBounds(scene, nodeName)` en `useRoomScene.ts` lo cachea en un `WeakMap` keyeado por la instancia de `scene`. `CameraRig` e `InterfaceLayer` leen de ese mismo cache, así que cámara y UI siempre parten exactamente del mismo centro, sin margen para que diverjan por dos cálculos independientes.
+
 Decisión explícita del usuario: **no usar Empties `Camera_*` en Blender** para el encuadre — en su lugar se usan capturas de referencia (`design/reference/Reference *.png`) como guía visual. Esto significa que el *ángulo/distancia* de cada shot de cámara y la posición de cada panel de UI son constantes ajustadas a mano en `src/scene/framing.ts` (no datos leídos del `.blend`), calculadas como un offset sobre el `Box3` real del objeto resuelto por nombre:
 
 | Id interno | Nodo real en el glb | Referencia visual |

@@ -1,17 +1,17 @@
 import { useLayoutEffect, useRef } from 'react'
 import { useThree } from '@react-three/fiber'
 import gsap from 'gsap'
-import { Box3, PerspectiveCamera, Quaternion, Vector3 } from 'three'
+import { PerspectiveCamera, Quaternion, Vector3 } from 'three'
 import { useExperienceStore } from '../state/useExperienceStore'
-import { useRoomScene } from './useRoomScene'
+import { useRoomScene, getObjectBounds } from './useRoomScene'
 import { OBJECT_NODE_NAMES, CAMERA_FRAMING, DEFAULT_CAMERA } from './framing'
 
 /**
  * No hay Empties Camera_* en el modelo real (el usuario prefirió capturas
- * de referencia). La cámara se calcula en runtime: se resuelve el nodo por
- * nombre directamente en la escena del glb (useRoomScene, cacheada por
- * useGLTF), se mide su Box3 real, y se le aplica un offset/lookAt ajustado
- * a mano contra design/reference/*.png. La orientación se deriva con una
+ * de referencia). La cámara se calcula en runtime: se resuelve el centro
+ * cacheado del objeto (getObjectBounds — calculado una sola vez por escena,
+ * no en cada transición) y se le aplica un offset/lookAt ajustado a mano
+ * contra design/reference/*.png. La orientación se deriva con una
  * PerspectiveCamera de scratch (así se usa la convención -Z correcta, sin
  * el bug de +Z/-Z que da Object3D.lookAt en un objeto no-cámara).
  */
@@ -23,7 +23,6 @@ export default function CameraRig() {
   const didInit = useRef(false)
   const tween = useRef({ t: 0 })
   const scratchCam = useRef(new PerspectiveCamera())
-  const box = useRef(new Box3())
 
   useLayoutEffect(() => {
     let targetPos: Vector3
@@ -31,11 +30,10 @@ export default function CameraRig() {
 
     if (activeObject) {
       const nodeName = OBJECT_NODE_NAMES[activeObject]
-      const node = scene.getObjectByName(nodeName)
-      if (!node) return
+      const bounds = getObjectBounds(scene, nodeName)
+      if (!bounds) return
 
-      box.current.setFromObject(node)
-      const center = box.current.getCenter(new Vector3())
+      const center = bounds.center
       const shot = CAMERA_FRAMING[activeObject]
 
       const pos = center.clone().add(new Vector3(...shot.offset))
