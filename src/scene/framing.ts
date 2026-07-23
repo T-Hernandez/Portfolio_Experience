@@ -45,8 +45,8 @@ export const CAMERA_FRAMING: Record<InteractiveObjectId, CameraShot> = {
 /** Vista general — tuneada contra la captura del viewport de Blender (2026-07-22). */
 export const DEFAULT_CAMERA: CameraShot & { origin: [number, number, number] } = {
   origin: [-1, 5.4, -1],
-  offset: [22, 0.5, 0],
-  lookAtOffset: [-2, -0.9, 0],
+  offset: [26, 0.5, 0],
+  lookAtOffset: [-3.5, -0.9, 0],
 }
 
 /**
