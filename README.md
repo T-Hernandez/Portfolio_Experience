@@ -11,9 +11,9 @@ npm run dev
 
 ## Estado actual
 
-El modelo real ya está integrado: `public/models/room.glb` (copiado de `design/blender/Room.glb`), cargado en `src/scene/Room.tsx` vía `useGLTF`. No hay geometría placeholder.
+El modelo real ya está integrado: `public/models/room.glb`, cargado en `src/scene/Room.tsx` vía `useGLTF` (deployado en Vercel, redespliega solo con cada push a `main`). No hay geometría placeholder. Los 9 materiales traen textura y las luces de la escena (`light 1`, `light 2`) vienen del `.glb`, no están hardcodeadas — ver la sección "Iluminación" más abajo.
 
-Pendiente del lado de Blender: **solo 3 de los 9 materiales del `.glb` traen textura** (silla, planta, pokewalker) — librero, escritorio, piso, laptop, tocadiscos y paredes salen en gris PBR por defecto porque esos materiales no tienen `baseColorTexture` ni `baseColorFactor` en el archivo exportado. No es un bug de carga; falta re-exportar con esas texturas/colores asignados.
+Si un material sale gris (sin textura ni color), casi siempre es porque en Blender su nodo `Base Color` está conectado a algo que el exportador de glTF no sabe traducir (un `Diffuse BSDF` en vez de `Principled BSDF`, o una mezcla de nodos demasiado compleja) — no es un bug de carga del lado de la app.
 
 ## El contrato Blender ↔ código
 
@@ -46,6 +46,17 @@ El hover **no escala el objeto** (deformar un laptop o un tocadiscos real rompe 
 ### Encuadre de la UI: offset relativo al tamaño del objeto, no al centro
 
 `UI_OFFSET_FRACTION` en `framing.ts` no es un vector absoluto sumado al centro del `Box3` — es una **fracción del propio tamaño** del objeto (`center + size * fracción`). Sumar directamente el centro del `Box3` sin esto haría que el panel flote en el centro geométrico del objeto (ej. el centro del laptop cae dentro del teclado, no en la pantalla); expresarlo como fracción del tamaño mantiene el desplazamiento proporcional si el objeto cambia de dimensiones. La cámara, en cambio, sí puede partir directamente del centro del `Box3` — para encuadrar un objeto el punto de referencia geométrico es exactamente lo que se necesita.
+
+## Iluminación
+
+Las luces de la escena vienen del `.glb` (`light 1`, `light 2`, exportadas vía `KHR_lights_punctual`), no están hardcodeadas en React — `Experience.tsx` no declara ningún `<ambientLight>`/`<directionalLight>`, se montan solas al cargar `<primitive object={scene}/>` en `Room.tsx`.
+
+Dos cosas no obvias de esta extensión de glTF:
+
+- **Solo soporta luces Point, Spot y Sun (Directional).** Las luces de tipo *Area* de Blender no son exportables por este mecanismo — es una limitación del formato glTF, no de la config del exportador. Si en Blender agregás una luz nueva y no aparece en la app, primero fijate que no sea de tipo Area.
+- **La intensidad que exporta Blender está en candela reales** (para esta escena, del orden de cientos de miles) — aplicada tal cual en three.js, el cálculo de sombreado desborda y la escena sale negra, incluso con tone mapping. `useRoomScene.ts` escala la intensidad de cada luz una sola vez por escena (`LIGHT_INTENSITY_SCALE`, actualmente `1/1000`) antes de que nada la use. Si se agregan luces nuevas en Blender con vatios muy distintos a las actuales, ese factor fijo puede no quedar bien calibrado — es una constante ajustada a ojo contra esta escena puntual, no una conversión física exacta.
+
+`Experience.tsx` también configura `toneMapping: ACESFilmicToneMapping` en el `<Canvas>` — comprime el rango dinámico de esas intensidades reales a algo que un monitor puede mostrar sin quemar los blancos.
 
 ## Título en la pared
 
