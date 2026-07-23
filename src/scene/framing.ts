@@ -1,12 +1,11 @@
 import type { InteractiveObjectId } from '../state/useExperienceStore'
 
 /**
- * El .glb real no trae Empties Camera_* ni anchors de UI (decisión del
- * usuario: usar las capturas de referencia en design/reference/ en vez de
- * cámaras en Blender). El nombre del objeto sigue siendo el contrato — su
- * posición real se lee del modelo (Box3 del nodo resuelto por nombre) — pero
- * el ángulo/distancia de cada shot es una constante ajustada a mano contra
- * esas capturas, no un dato exportado.
+ * El .glb trae cámaras reales de Blender (nodos glTF tipo `camera`, una por
+ * shot) — el encuadre no se calcula ni se ajusta a mano en ningún lado, se
+ * lee directo la posición/rotación de la cámara resuelta por nombre. Blender
+ * es la única fuente de verdad para el ángulo, igual que ya lo es para la
+ * posición de los objetos.
  */
 
 export const OBJECT_NODE_NAMES: Record<InteractiveObjectId, string> = {
@@ -16,38 +15,22 @@ export const OBJECT_NODE_NAMES: Record<InteractiveObjectId, string> = {
   pokewalker: 'pokewalk',
 }
 
-interface CameraShot {
-  /** offset de la cámara relativo al centro del Box3 del objeto */
-  offset: [number, number, number]
-  /** punto de mira, relativo al mismo centro */
-  lookAtOffset: [number, number, number]
-}
-
 /**
- * Ajustados a ojo, iterando dev server + captura de pantalla contra cada
- * referencia — el objetivo era que el objeto llene el encuadre con una
- * composición agradable, no reproducir el ángulo exacto de Blender (no
- * hay dato de cámara real que reproducir; ver framing.ts arriba).
+ * Nombre del nodo-cámara real en el glb para cada shot. three.js reemplaza
+ * los espacios por guiones bajos al parsear el glTF (el nombre en Blender
+ * es "laptop camera", pero `scene.getObjectByName` necesita "laptop_camera")
+ * — confirmado inspeccionando `scene.traverse(...)` en el navegador, no es
+ * un dato que figure así en el JSON del glb.
  */
-export const CAMERA_FRAMING: Record<InteractiveObjectId, CameraShot> = {
-  // Reference laptop.png — frontal, pantalla llenando el encuadre.
-  laptop: { offset: [7, 0, 0], lookAtOffset: [0, -0.3, 0] },
-  // Reference bookshelf.png — 3/4 angulado; offset.x grande a propósito:
-  // el Box3 del librero es enorme (rotación del nodo infla el AABB) y un
-  // offset chico deja la cámara METIDA en la geometría (pantalla gris lisa).
-  bookshelf: { offset: [13, -2, 4], lookAtOffset: [0, -2, 0] },
-  // Reference turntable.png — angulado desde arriba/costado.
-  turntable: { offset: [6, 1.5, 2], lookAtOffset: [0, -0.3, 0] },
-  // Reference pokewalker.png — cercano, bajo, con la planta detrás en cuadro.
-  pokewalker: { offset: [5, 1, 2], lookAtOffset: [0, -0.2, 0] },
+export const CAMERA_NODE_NAMES: Record<InteractiveObjectId, string> = {
+  laptop: 'laptop_camera',
+  bookshelf: 'bookshelf_camera',
+  turntable: 'turntable_camera',
+  pokewalker: 'pokewalk_camera',
 }
 
-/** Vista general — tuneada contra la captura del viewport de Blender (2026-07-22). */
-export const DEFAULT_CAMERA: CameraShot & { origin: [number, number, number] } = {
-  origin: [-1, 5.4, -1],
-  offset: [26, 0.5, 0],
-  lookAtOffset: [-3.5, -0.9, 0],
-}
+/** Cámara de la vista general/reposo. */
+export const DEFAULT_CAMERA_NODE_NAME = 'general_camera'
 
 /**
  * Offset del panel de UI relativo al centro del Box3 del objeto, expresado
@@ -65,6 +48,3 @@ export const UI_OFFSET_FRACTION: Record<InteractiveObjectId, [number, number, nu
   turntable: [0.505, 0.4399, 0],
   pokewalker: [1.3725, 2.3867, 0],
 }
-
-/** Rotación fija de la pantalla del laptop (no hay anchor dedicado). */
-export const LAPTOP_SCREEN_TILT: [number, number, number] = [-0.35, 0, 0]

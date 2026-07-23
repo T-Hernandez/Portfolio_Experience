@@ -3,24 +3,17 @@ import { Html } from '@react-three/drei'
 import { Vector3 } from 'three'
 import { useExperienceStore, type InteractiveObjectId } from '../state/useExperienceStore'
 import { useRoomScene, getObjectBounds } from './useRoomScene'
-import { OBJECT_NODE_NAMES, UI_OFFSET_FRACTION, LAPTOP_SCREEN_TILT } from './framing'
+import { OBJECT_NODE_NAMES, UI_OFFSET_FRACTION } from './framing'
 import LaptopScreen from '../ui/LaptopScreen'
 import BookshelfCard from '../ui/BookshelfCard'
 import TurntablePlayer from '../ui/TurntablePlayer'
 import PokewalkerCard from '../ui/PokewalkerCard'
 
-interface ObjectUIConfig {
-  component: ComponentType
-  /** true = clavado en la superficie del objeto (ej. pantalla del laptop) */
-  transform?: boolean
-  distanceFactor?: number
-}
-
-const OBJECT_UI_CONFIG: Record<InteractiveObjectId, ObjectUIConfig> = {
-  laptop: { component: LaptopScreen, transform: true, distanceFactor: 0.55 },
-  bookshelf: { component: BookshelfCard },
-  turntable: { component: TurntablePlayer },
-  pokewalker: { component: PokewalkerCard },
+const OBJECT_UI_CONFIG: Record<InteractiveObjectId, ComponentType> = {
+  laptop: LaptopScreen,
+  bookshelf: BookshelfCard,
+  turntable: TurntablePlayer,
+  pokewalker: PokewalkerCard,
 }
 
 export default function InterfaceLayer() {
@@ -38,17 +31,10 @@ export default function InterfaceLayer() {
 
   if (!activeObject || !position) return null
 
-  const config = OBJECT_UI_CONFIG[activeObject]
-  const Component = config.component
+  const Component = OBJECT_UI_CONFIG[activeObject]
 
   return (
-    <Html
-      position={position}
-      rotation={config.transform ? LAPTOP_SCREEN_TILT : undefined}
-      transform={config.transform}
-      distanceFactor={config.distanceFactor}
-      center={!config.transform}
-    >
+    <Html position={position} center>
       <Component />
     </Html>
   )

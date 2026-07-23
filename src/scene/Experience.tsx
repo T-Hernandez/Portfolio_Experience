@@ -9,12 +9,13 @@ import BackButton from '../ui/BackButton'
 export default function Experience() {
   return (
     <>
-      {/* Posición inicial aproximada solo para el primer frame; CameraRig
-          la corrige inmediatamente contra DEFAULT_CAMERA (framing.ts). */}
+      {/* Posición/fov inicial aproximada solo para el primer frame; CameraRig
+          la corrige inmediatamente contra la cámara real "general camera"
+          del glb (framing.ts / CameraRig.tsx). */}
       <Canvas
         shadows
         dpr={[1, 2]}
-        camera={{ position: [1.5, 2, 4], fov: 45 }}
+        camera={{ position: [1.5, 2, 4], fov: 23 }}
         gl={{ toneMapping: ACESFilmicToneMapping, toneMappingExposure: 1 }}
       >
         <color attach="background" args={['#0d0b0a']} />

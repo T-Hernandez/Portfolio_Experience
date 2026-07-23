@@ -1,19 +1,17 @@
 import { useLayoutEffect, useRef } from 'react'
 import { useThree } from '@react-three/fiber'
 import gsap from 'gsap'
-import { PerspectiveCamera, Quaternion, Vector3 } from 'three'
+import { MathUtils, Quaternion, Vector3, type PerspectiveCamera } from 'three'
 import { useExperienceStore } from '../state/useExperienceStore'
-import { useRoomScene, getObjectBounds } from './useRoomScene'
-import { OBJECT_NODE_NAMES, CAMERA_FRAMING, DEFAULT_CAMERA } from './framing'
+import { useRoomScene } from './useRoomScene'
+import { CAMERA_NODE_NAMES, DEFAULT_CAMERA_NODE_NAME } from './framing'
 
 /**
- * No hay Empties Camera_* en el modelo real (el usuario prefirió capturas
- * de referencia). La cámara se calcula en runtime: se resuelve el centro
- * cacheado del objeto (getObjectBounds — calculado una sola vez por escena,
- * no en cada transición) y se le aplica un offset/lookAt ajustado a mano
- * contra design/reference/*.png. La orientación se deriva con una
- * PerspectiveCamera de scratch (así se usa la convención -Z correcta, sin
- * el bug de +Z/-Z que da Object3D.lookAt en un objeto no-cámara).
+ * El .glb trae cámaras reales de Blender (nodos glTF tipo `camera`) — no
+ * hay ningún cálculo ni offset acá. Se resuelve el nodo-cámara por nombre
+ * y se copia su posición/rotación/fov mundiales tal cual; GLTFLoader ya
+ * instancia esos nodos como THREE.PerspectiveCamera reales, así que no
+ * hace falta reconstruir la orientación con lookAt.
  */
 export default function CameraRig() {
   const { camera } = useThree()
@@ -22,48 +20,32 @@ export default function CameraRig() {
   const scene = useRoomScene()
   const didInit = useRef(false)
   const tween = useRef({ t: 0 })
-  const scratchCam = useRef(new PerspectiveCamera())
 
   useLayoutEffect(() => {
-    let targetPos: Vector3
-    let targetQuat: Quaternion
+    const nodeName = activeObject ? CAMERA_NODE_NAMES[activeObject] : DEFAULT_CAMERA_NODE_NAME
+    const camNode = scene.getObjectByName(nodeName) as PerspectiveCamera | undefined
+    if (!camNode) return
 
-    if (activeObject) {
-      const nodeName = OBJECT_NODE_NAMES[activeObject]
-      const bounds = getObjectBounds(scene, nodeName)
-      if (!bounds) return
+    scene.updateMatrixWorld(true)
+    const targetPos = camNode.getWorldPosition(new Vector3())
+    const targetQuat = camNode.getWorldQuaternion(new Quaternion())
+    const targetFov = camNode.fov
 
-      const center = bounds.center
-      const shot = CAMERA_FRAMING[activeObject]
-
-      const pos = center.clone().add(new Vector3(...shot.offset))
-      const lookAt = center.clone().add(new Vector3(...shot.lookAtOffset))
-
-      scratchCam.current.position.copy(pos)
-      scratchCam.current.lookAt(lookAt)
-      targetPos = pos
-      targetQuat = scratchCam.current.quaternion.clone()
-    } else {
-      const origin = new Vector3(...DEFAULT_CAMERA.origin)
-      const pos = origin.clone().add(new Vector3(...DEFAULT_CAMERA.offset))
-      const lookAt = origin.clone().add(new Vector3(...DEFAULT_CAMERA.lookAtOffset))
-
-      scratchCam.current.position.copy(pos)
-      scratchCam.current.lookAt(lookAt)
-      targetPos = pos
-      targetQuat = scratchCam.current.quaternion.clone()
-    }
+    const perspCamera = camera as PerspectiveCamera
 
     if (!didInit.current) {
       didInit.current = true
       camera.position.copy(targetPos)
       camera.quaternion.copy(targetQuat)
+      perspCamera.fov = targetFov
+      perspCamera.updateProjectionMatrix()
       setMode(activeObject ? 'focused' : 'idle')
       return
     }
 
     const startPos = camera.position.clone()
     const startQuat = camera.quaternion.clone()
+    const startFov = perspCamera.fov
     const state = tween.current
     state.t = 0
     setMode('transitioning')
@@ -76,6 +58,8 @@ export default function CameraRig() {
       onUpdate: () => {
         camera.position.lerpVectors(startPos, targetPos, state.t)
         camera.quaternion.slerpQuaternions(startQuat, targetQuat, state.t)
+        perspCamera.fov = MathUtils.lerp(startFov, targetFov, state.t)
+        perspCamera.updateProjectionMatrix()
       },
       onComplete: () => setMode(activeObject ? 'focused' : 'idle'),
     })
