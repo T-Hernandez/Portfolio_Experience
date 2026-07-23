@@ -54,7 +54,17 @@ function computeBounds(scene: Object3D): Map<string, ObjectBounds> {
  * a un rango que el renderer en tiempo real puede manejar — no es un ajuste
  * "para que se vea lindo", es necesario para que no rompa el shading.
  */
-const LIGHT_INTENSITY_SCALE = 1 / 1000
+const LIGHT_INTENSITY_SCALE = 1 / 2500
+
+/**
+ * NOTA: bajar el `decay` de estas point lights (de 2, físicamente correcto,
+ * a algo menor) se probó para suavizar el "hot spot" cerca de la fuente y
+ * terminó rompiendo todo de nuevo (pantalla negra) — un decay más chico
+ * hace que la luz alcance MUCHO más lejos con la misma intensidad, y con
+ * candelas de este tamaño eso vuelve a desbordar el shading en otras zonas
+ * de la escena. No tocar el decay sin volver a probar con una intensidad
+ * mucho más baja en simultáneo.
+ */
 const normalizedLightScenes = new WeakSet<Object3D>()
 
 function normalizeLightIntensities(scene: Object3D) {
