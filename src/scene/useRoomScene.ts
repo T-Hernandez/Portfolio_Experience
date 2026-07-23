@@ -1,5 +1,5 @@
 import { useGLTF } from '@react-three/drei'
-import { Box3, Vector3, type Object3D } from 'three'
+import { Box3, Vector3, type Light, type Object3D } from 'three'
 import { OBJECT_NODE_NAMES } from './framing'
 
 const ROOM_PATH = '/models/room.glb'
@@ -45,12 +45,37 @@ function computeBounds(scene: Object3D): Map<string, ObjectBounds> {
 }
 
 /**
+ * Blender exporta la intensidad de sus luces (KHR_lights_punctual) en
+ * candela reales — para "light 1"/"light 2" eso son números de cientos de
+ * miles. Es el valor físicamente correcto, pero al aplicarlo tal cual en
+ * three.js (que usa esas mismas unidades para point/spot lights) el cálculo
+ * de sombreado desborda a corta distancia y la escena sale directamente
+ * negra, incluso con tone mapping ACES. Se escalan una sola vez por escena
+ * a un rango que el renderer en tiempo real puede manejar — no es un ajuste
+ * "para que se vea lindo", es necesario para que no rompa el shading.
+ */
+const LIGHT_INTENSITY_SCALE = 1 / 1000
+const normalizedLightScenes = new WeakSet<Object3D>()
+
+function normalizeLightIntensities(scene: Object3D) {
+  if (normalizedLightScenes.has(scene)) return
+  scene.traverse((obj) => {
+    if ((obj as Light).isLight) {
+      ;(obj as Light).intensity *= LIGHT_INTENSITY_SCALE
+    }
+  })
+  normalizedLightScenes.add(scene)
+}
+
+/**
  * useGLTF cachea por URL, así que llamarlo desde Room/CameraRig/InterfaceLayer
  * no dispara tres cargas — todos comparten la misma escena ya parseada. No
  * hace falta un provider/contexto solo para compartir esta referencia.
  */
 export function useRoomScene() {
-  return useGLTF(ROOM_PATH).scene
+  const scene = useGLTF(ROOM_PATH).scene
+  normalizeLightIntensities(scene)
+  return scene
 }
 
 /** Bounds cacheados de un nodo interactivo por su nombre real en el glb. */
