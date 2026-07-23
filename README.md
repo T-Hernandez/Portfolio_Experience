@@ -54,9 +54,11 @@ Las luces de la escena vienen del `.glb` (`light 1`, `light 2`, exportadas vía 
 Dos cosas no obvias de esta extensión de glTF:
 
 - **Solo soporta luces Point, Spot y Sun (Directional).** Las luces de tipo *Area* de Blender no son exportables por este mecanismo — es una limitación del formato glTF, no de la config del exportador. Si en Blender agregás una luz nueva y no aparece en la app, primero fijate que no sea de tipo Area.
-- **La intensidad que exporta Blender está en candela reales** (para esta escena, del orden de cientos de miles) — aplicada tal cual en three.js, el cálculo de sombreado desborda y la escena sale negra, incluso con tone mapping. `useRoomScene.ts` escala la intensidad de cada luz una sola vez por escena (`LIGHT_INTENSITY_SCALE`, actualmente `1/1000`) antes de que nada la use. Si se agregan luces nuevas en Blender con vatios muy distintos a las actuales, ese factor fijo puede no quedar bien calibrado — es una constante ajustada a ojo contra esta escena puntual, no una conversión física exacta.
+- **La intensidad que exporta Blender está en candela reales** (para esta escena, del orden de cientos de miles) — aplicada tal cual en three.js, el cálculo de sombreado desborda y la escena sale negra, incluso con tone mapping. `useRoomScene.ts` escala la intensidad de cada luz una sola vez por escena (`LIGHT_INTENSITY_SCALE`, actualmente `1/2500`) antes de que nada la use. Si se agregan luces nuevas en Blender con vatios muy distintos a las actuales, ese factor fijo puede no quedar bien calibrado — es una constante ajustada a ojo contra esta escena puntual, no una conversión física exacta.
 
 `Experience.tsx` también configura `toneMapping: ACESFilmicToneMapping` en el `<Canvas>` — comprime el rango dinámico de esas intensidades reales a algo que un monitor puede mostrar sin quemar los blancos.
+
+**Límite conocido, no un bug:** Blender renderiza con Cycles (path tracing con iluminación global — la luz rebota y suaviza toda la escena). Three.js en tiempo real solo calcula luz directa, sin rebotes. Con únicamente 2 point lights, no existe un solo valor de intensidad que evite highlights quemados cerca de las luces *y* mantenga el detalle en zonas alejadas (como el librero) — es una limitación estructural del modelo de iluminación, no algo mal configurado. El valor actual de `LIGHT_INTENSITY_SCALE` prioriza no quemar highlights, aceptando sombras más marcadas que en el render de Blender. Decisión del usuario (2026-07-22): dejarlo así antes que agregar una luz de relleno hardcodeada.
 
 ## Título en la pared
 
