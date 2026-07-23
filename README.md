@@ -11,7 +11,7 @@ npm run dev
 
 ## Estado actual
 
-El modelo real ya está integrado: `public/models/room.glb`, cargado en `src/scene/Room.tsx` vía `useGLTF` (deployado en Vercel, redespliega solo con cada push a `main`). No hay geometría placeholder. Los 9 materiales traen textura y las luces de la escena (`light 1`, `light 2`) vienen del `.glb`, no están hardcodeadas — ver la sección "Iluminación" más abajo.
+El modelo real ya está integrado: `public/models/room.glb`, cargado en `src/scene/Room.tsx` vía `useGLTF` (deployado en Vercel, redespliega solo con cada push a `main`). No hay geometría placeholder. Los 9 materiales traen textura y la luz de la escena (`light 1`) viene del `.glb`, no está hardcodeada — ver la sección "Iluminación" más abajo.
 
 Si un material sale gris (sin textura ni color), casi siempre es porque en Blender su nodo `Base Color` está conectado a algo que el exportador de glTF no sabe traducir (un `Diffuse BSDF` en vez de `Principled BSDF`, o una mezcla de nodos demasiado compleja) — no es un bug de carga del lado de la app.
 
@@ -29,7 +29,7 @@ Decisión explícita del usuario: **no usar Empties `Camera_*` en Blender** para
 | `bookshelf` | `bookshelf` | `Reference bookshelf.png` |
 | `turntable` | `turntable` | `Reference turntable.png` |
 | `pokewalker` | `pokewalk` | `Reference pokewalker.png` |
-| — (vista de reposo) | — | `Reference general view.png` |
+| — (vista de reposo) | — | captura del viewport de Blender (2026-07-22), no un archivo en `design/reference/` |
 
 Si en Blender se mueve alguno de estos objetos, la cámara y la UI lo siguen automáticamente (dependen de su `Box3` en runtime) — pero si cambia mucho su tamaño o proporción, los offsets de `CAMERA_FRAMING`/`UI_OFFSET` en `framing.ts` probablemente necesiten un reajuste visual (el mismo método: dev server + captura de pantalla comparando contra la referencia).
 
@@ -49,16 +49,16 @@ El hover **no escala el objeto** (deformar un laptop o un tocadiscos real rompe 
 
 ## Iluminación
 
-Las luces de la escena vienen del `.glb` (`light 1`, `light 2`, exportadas vía `KHR_lights_punctual`), no están hardcodeadas en React — `Experience.tsx` no declara ningún `<ambientLight>`/`<directionalLight>`, se montan solas al cargar `<primitive object={scene}/>` en `Room.tsx`.
+La luz de la escena viene del `.glb` (`light 1`, exportada vía `KHR_lights_punctual`), no está hardcodeada en React — `Experience.tsx` no declara ningún `<ambientLight>`/`<directionalLight>`, se monta sola al cargar `<primitive object={scene}/>` en `Room.tsx`. Originalmente había una segunda luz (`light 2`); se eliminó en Blender porque, convertida de Area a Point, generaba un highlight quemado en la pared cercana (ver debajo) — con una sola luz el balance quedó mucho más parecido al render de Blender.
 
 Dos cosas no obvias de esta extensión de glTF:
 
-- **Solo soporta luces Point, Spot y Sun (Directional).** Las luces de tipo *Area* de Blender no son exportables por este mecanismo — es una limitación del formato glTF, no de la config del exportador. Si en Blender agregás una luz nueva y no aparece en la app, primero fijate que no sea de tipo Area.
-- **La intensidad que exporta Blender está en candela reales** (para esta escena, del orden de cientos de miles) — aplicada tal cual en three.js, el cálculo de sombreado desborda y la escena sale negra, incluso con tone mapping. `useRoomScene.ts` escala la intensidad de cada luz una sola vez por escena (`LIGHT_INTENSITY_SCALE`, actualmente `1/2500`) antes de que nada la use. Si se agregan luces nuevas en Blender con vatios muy distintos a las actuales, ese factor fijo puede no quedar bien calibrado — es una constante ajustada a ojo contra esta escena puntual, no una conversión física exacta.
+- **Solo soporta luces Point, Spot y Sun (Directional).** Las luces de tipo *Area* de Blender no son exportables por este mecanismo — es una limitación del formato glTF, no de la config del exportador. Si en Blender agregás una luz nueva y no aparece en la app, primero fijate que no sea de tipo Area. Una luz de Área convertida a Point concentra toda su potencia en un punto matemático, así que de cerca se ve mucho más intensa que la original (caída inversa al cuadrado sin la superficie que la suavizaba).
+- **La intensidad que exporta Blender está en candela reales** (para esta escena, cientos de miles) — aplicada tal cual en three.js, el cálculo de sombreado desborda y la escena sale negra, incluso con tone mapping. `useRoomScene.ts` escala la intensidad una sola vez por escena (`LIGHT_INTENSITY_SCALE`, actualmente `1/300`) antes de que nada la use. Si se agregan luces nuevas en Blender con vatios muy distintos a las actuales, ese factor fijo probablemente necesite retunearse — es una constante ajustada a ojo contra esta escena puntual, no una conversión física exacta. **Cuidado al bajar el `decay` de una PointLight para suavizar su caída**: se probó y volvió a romper el shading (pantalla negra) — un decay menor hace que la luz alcance mucho más lejos con la misma intensidad, y con candelas de este tamaño eso desborda en otra parte de la escena. Quedó en el valor físico por defecto (2).
 
 `Experience.tsx` también configura `toneMapping: ACESFilmicToneMapping` en el `<Canvas>` — comprime el rango dinámico de esas intensidades reales a algo que un monitor puede mostrar sin quemar los blancos.
 
-**Límite conocido, no un bug:** Blender renderiza con Cycles (path tracing con iluminación global — la luz rebota y suaviza toda la escena). Three.js en tiempo real solo calcula luz directa, sin rebotes. Con únicamente 2 point lights, no existe un solo valor de intensidad que evite highlights quemados cerca de las luces *y* mantenga el detalle en zonas alejadas (como el librero) — es una limitación estructural del modelo de iluminación, no algo mal configurado. El valor actual de `LIGHT_INTENSITY_SCALE` prioriza no quemar highlights, aceptando sombras más marcadas que en el render de Blender. Decisión del usuario (2026-07-22): dejarlo así antes que agregar una luz de relleno hardcodeada.
+**Límite conocido, no un bug:** Blender renderiza con Cycles (path tracing con iluminación global — la luz rebota y suaviza toda la escena). Three.js en tiempo real solo calcula luz directa, sin rebotes. Con una sola luz puntual, no existe un valor de intensidad que evite highlights quemados cerca de la luz *y* mantenga el detalle en zonas alejadas (como el librero) sin margen — es una limitación estructural del modelo de iluminación, no algo mal configurado. `LIGHT_INTENSITY_SCALE` se ajustó para acercarse lo más posible al render de referencia de Blender sin quemar highlights.
 
 ## Título en la pared
 
