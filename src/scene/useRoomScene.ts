@@ -20,6 +20,15 @@ interface ObjectBounds {
  */
 const boundsCache = new WeakMap<Object3D, Map<string, ObjectBounds>>()
 
+/**
+ * Este caché asume geometría estática: estos bounds representan el objeto
+ * en el momento en que se calcularon, una sola vez. Si algún día un objeto
+ * interactivo cambia de geometría o transform (tapa del laptop abriéndose,
+ * tocadiscos girando, animaciones del pokewalker), este cache queda
+ * desactualizado — hay que invalidar y recalcular sus bounds explícitamente
+ * (ej. `boundsCache.delete(scene)` o una versión por-nodo) en vez de asumir
+ * que siguen siendo válidos.
+ */
 function computeBounds(scene: Object3D): Map<string, ObjectBounds> {
   const cached = boundsCache.get(scene)
   if (cached) return cached
