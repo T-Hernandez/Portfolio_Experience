@@ -42,11 +42,11 @@ export const CAMERA_FRAMING: Record<InteractiveObjectId, CameraShot> = {
   pokewalker: { offset: [5, 1, 2], lookAtOffset: [0, -0.2, 0] },
 }
 
-/** Vista general — tuneada contra "Reference general view.png". */
+/** Vista general — tuneada contra la captura del viewport de Blender (2026-07-22). */
 export const DEFAULT_CAMERA: CameraShot & { origin: [number, number, number] } = {
-  origin: [-1, 5.6, -1],
-  offset: [24, 1, 0],
-  lookAtOffset: [-2, -0.5, 0],
+  origin: [-1, 5.4, -1],
+  offset: [22, 0.5, 0],
+  lookAtOffset: [-2, -0.9, 0],
 }
 
 /**

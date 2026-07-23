@@ -54,7 +54,7 @@ function computeBounds(scene: Object3D): Map<string, ObjectBounds> {
  * a un rango que el renderer en tiempo real puede manejar — no es un ajuste
  * "para que se vea lindo", es necesario para que no rompa el shading.
  */
-const LIGHT_INTENSITY_SCALE = 1 / 2500
+const LIGHT_INTENSITY_SCALE = 1 / 300
 
 /**
  * NOTA: bajar el `decay` de estas point lights (de 2, físicamente correcto,
