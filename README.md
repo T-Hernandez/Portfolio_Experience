@@ -21,17 +21,21 @@ Blender es la fuente de verdad de **qué objetos existen y dónde están** — R
 
 El `Box3` de cada objeto interactivo (su posición/tamaño real en el mundo) se calcula **una sola vez por escena**, no en cada transición de cámara — `getObjectBounds(scene, nodeName)` en `useRoomScene.ts` lo cachea en un `WeakMap` keyeado por la instancia de `scene`. `CameraRig` e `InterfaceLayer` leen de ese mismo cache, así que cámara y UI siempre parten exactamente del mismo centro, sin margen para que diverjan por dos cálculos independientes.
 
-Decisión explícita del usuario: **no usar Empties `Camera_*` en Blender** para el encuadre — en su lugar se usan capturas de referencia (`design/reference/Reference *.png`) como guía visual. Esto significa que el *ángulo/distancia* de cada shot de cámara y la posición de cada panel de UI son constantes ajustadas a mano en `src/scene/framing.ts` (no datos leídos del `.blend`), calculadas como un offset sobre el `Box3` real del objeto resuelto por nombre:
+**El encuadre de cámara viene de cámaras reales en Blender**, no de constantes ajustadas a mano. El `.glb` trae 5 nodos tipo `camera` (uno por shot): `general_camera` (vista de reposo), `laptop_camera`, `bookshelf_camera`, `turntable_camera`, `pokewalk_camera`. `CameraRig.tsx` resuelve el nodo por nombre y copia su posición/rotación/fov mundiales directo — no hay ningún cálculo de offset ni lookAt de por medio.
 
-| Id interno | Nodo real en el glb | Referencia visual |
+| Id interno | Nodo de objeto en el glb | Nodo de cámara en el glb |
 |---|---|---|
-| `laptop` | `laptop` | `Reference laptop.png` |
-| `bookshelf` | `bookshelf` | `Reference bookshelf.png` |
-| `turntable` | `turntable` | `Reference turntable.png` |
-| `pokewalker` | `pokewalk` | `Reference pokewalker.png` |
-| — (vista de reposo) | — | captura del viewport de Blender (2026-07-22), no un archivo en `design/reference/` |
+| `laptop` | `laptop` | `laptop_camera` |
+| `bookshelf` | `bookshelf` | `bookshelf_camera` |
+| `turntable` | `turntable` | `turntable_camera` |
+| `pokewalker` | `pokewalk` | `pokewalk_camera` |
+| — (vista de reposo) | — | `general_camera` |
 
-Si en Blender se mueve alguno de estos objetos, la cámara y la UI lo siguen automáticamente (dependen de su `Box3` en runtime) — pero si cambia mucho su tamaño o proporción, los offsets de `CAMERA_FRAMING`/`UI_OFFSET` en `framing.ts` probablemente necesiten un reajuste visual (el mismo método: dev server + captura de pantalla comparando contra la referencia).
+**Gotcha importante:** three.js reemplaza los espacios por guiones bajos al parsear nombres de nodo del glTF — en Blender la cámara se llama "laptop camera" (con espacio), pero `scene.getObjectByName(...)` necesita `"laptop_camera"`. Los nombres en `CAMERA_NODE_NAMES`/`DEFAULT_CAMERA_NODE_NAME` (`src/scene/framing.ts`) ya usan la versión con guión bajo — si se agrega una cámara nueva en Blender, hay que mapearla ahí con el guión bajo, no con el nombre tal cual aparece en Blender.
+
+**Historial:** hubo una versión anterior de este proyecto donde el usuario decidió explícitamente NO usar cámaras de Blender y en su lugar ajustar offsets a mano contra capturas de referencia — esa decisión se revirtió por completo (2026-07-23): el usuario agregó las 5 cámaras reales en Blender y pidió usarlas tal cual, sin inventar ni ajustar nada por código. Si en algún momento se vuelve a un modelo sin estas cámaras, ese enfoque anterior queda documentado en el historial de git, pero no es el estado actual del proyecto.
+
+Si en Blender se mueve alguno de los objetos interactivos, la UI lo sigue automáticamente (depende de su `Box3` en runtime) — la cámara, en cambio, depende pura y exclusivamente de dónde esté posicionado su propio nodo `camera`, así que moverla en Blender y re-exportar es la única forma de cambiar un encuadre.
 
 **Si se renombra un nodo en Blender** (`laptop`, `bookshelf`, `turntable`, `pokewalk`), hay que actualizar `OBJECT_NODE_NAMES` en `src/scene/framing.ts` — si no, ese objeto deja de ser interactivo silenciosamente (no rompe la app, simplemente no se encuentra).
 
@@ -42,6 +46,10 @@ Si en Blender se mueve alguno de estos objetos, la cámara y la UI lo siguen aut
 `Room.tsx` monta el `.glb` completo de una — `<primitive object={scene} />` — y dentro de ese mismo `<primitive>` (como hijos JSX, no como hermanos) monta un `<InteractiveObject>` por cada id interactivo. Esto es intencional: cuando `InteractiveObject` reparenta su nodo con `attach()`, el grupo contenedor sigue colgando de `scene`, así que `scene.getObjectByName(...)` (el que usan `CameraRig` e `InterfaceLayer`) sigue encontrando el objeto después del reparenting — si estuvieran fuera del `<primitive>`, quedarían huérfanos de `scene` y esa búsqueda fallaría en silencio.
 
 El hover **no escala el objeto** (deformar un laptop o un tocadiscos real rompe la ilusión) — clona los materiales del nodo (para no afectar a otros objetos que compartan el material original) y les sube el `emissive` un poco, además de cambiar el cursor.
+
+### Panel de UI: billboard hacia cámara
+
+Los 4 paneles (`InterfaceLayer.tsx`) se renderizan con `<Html center>` — siempre encarados hacia la cámara activa, sin rotación fija. Antes el panel del laptop usaba `transform` + una rotación (`LAPTOP_SCREEN_TILT`) calibrada a mano para quedar "pegado" a la pantalla en el ángulo viejo; al pasar a cámaras reales de Blender esa rotación fija quedó mirando para cualquier lado y el panel se volvía invisible. Se simplificó a billboard como los otros 3 paneles — se pierde el efecto de "pegado a la superficie con perspectiva", pero es robusto a cualquier ángulo de cámara.
 
 ### Encuadre de la UI: offset relativo al tamaño del objeto, no al centro
 
@@ -54,7 +62,7 @@ La luz de la escena viene del `.glb` (`light 1`, exportada vía `KHR_lights_punc
 Dos cosas no obvias de esta extensión de glTF:
 
 - **Solo soporta luces Point, Spot y Sun (Directional).** Las luces de tipo *Area* de Blender no son exportables por este mecanismo — es una limitación del formato glTF, no de la config del exportador. Si en Blender agregás una luz nueva y no aparece en la app, primero fijate que no sea de tipo Area. Una luz de Área convertida a Point concentra toda su potencia en un punto matemático, así que de cerca se ve mucho más intensa que la original (caída inversa al cuadrado sin la superficie que la suavizaba).
-- **La intensidad que exporta Blender está en candela reales** (para esta escena, cientos de miles) — aplicada tal cual en three.js, el cálculo de sombreado desborda y la escena sale negra, incluso con tone mapping. `useRoomScene.ts` escala la intensidad una sola vez por escena (`LIGHT_INTENSITY_SCALE`, actualmente `1/300`) antes de que nada la use. Si se agregan luces nuevas en Blender con vatios muy distintos a las actuales, ese factor fijo probablemente necesite retunearse — es una constante ajustada a ojo contra esta escena puntual, no una conversión física exacta. **Cuidado al bajar el `decay` de una PointLight para suavizar su caída**: se probó y volvió a romper el shading (pantalla negra) — un decay menor hace que la luz alcance mucho más lejos con la misma intensidad, y con candelas de este tamaño eso desborda en otra parte de la escena. Quedó en el valor físico por defecto (2).
+- **La intensidad que exporta Blender está en candela reales** (para esta escena, cientos de miles) — aplicada tal cual en three.js, el cálculo de sombreado desborda y la escena sale negra, incluso con tone mapping. `useRoomScene.ts` escala la intensidad una sola vez por escena (`LIGHT_INTENSITY_SCALE`, actualmente `1/450`) antes de que nada la use. Si se agregan luces nuevas en Blender con vatios muy distintos a las actuales, ese factor fijo probablemente necesite retunearse — es una constante ajustada a ojo contra esta escena puntual, no una conversión física exacta. **Cuidado al bajar el `decay` de una PointLight para suavizar su caída**: se probó y volvió a romper el shading (pantalla negra) — un decay menor hace que la luz alcance mucho más lejos con la misma intensidad, y con candelas de este tamaño eso desborda en otra parte de la escena. Quedó en el valor físico por defecto (2).
 
 `Experience.tsx` también configura `toneMapping: ACESFilmicToneMapping` en el `<Canvas>` — comprime el rango dinámico de esas intensidades reales a algo que un monitor puede mostrar sin quemar los blancos.
 
